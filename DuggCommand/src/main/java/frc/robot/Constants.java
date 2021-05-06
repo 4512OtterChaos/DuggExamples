@@ -4,6 +4,8 @@
 
 package frc.robot;
 
+import edu.wpi.first.wpilibj.util.Units;
+
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
  * constants. This class should not be used for any other purpose. All constants should be declared
@@ -12,4 +14,13 @@ package frc.robot;
  * <p>It is advised to statically import this class (or one of its inner classes) wherever the
  * constants are needed, to reduce verbosity.
  */
-public final class Constants {}
+public class Constants {
+
+    public static final double kRobotDelta = 0.02;
+
+    public static class DriveConstants{
+        public static final double kWheelRadiusMeters = Units.inchesToMeters(6);
+        public static final double kGearRatio = 8.46;
+        public static final double kRampRaw = 0.08;
+    }
+}
