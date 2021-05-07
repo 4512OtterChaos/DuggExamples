@@ -11,6 +11,11 @@ import com.ctre.phoenix.motorcontrol.InvertType;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 
+import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.SPI.Port;
+import edu.wpi.first.wpilibj.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Drivetrain extends SubsystemBase {
@@ -19,6 +24,11 @@ public class Drivetrain extends SubsystemBase {
     private WPI_TalonSRX leftB = new WPI_TalonSRX(4);
     private WPI_TalonSRX rightA = new WPI_TalonSRX(2); // right lead
     private WPI_TalonSRX rightB = new WPI_TalonSRX(1);
+
+    private Encoder leftEncoder = new Encoder(4, 5);
+    private Encoder rightEncoder = new Encoder(2, 3);
+
+    private ADXRS450_Gyro gyro = new ADXRS450_Gyro(Port.kOnboardCS0);
 
     public Drivetrain() {
         configDrive(leftA,leftB,rightA,rightB);
@@ -41,5 +51,34 @@ public class Drivetrain extends SubsystemBase {
 
     @Override
     public void periodic() {
+        log();
+    }
+
+    public void tankDriveVolts(double leftVolts, double rightVolts){
+        SmartDashboard.putNumber("Left DT Volts", leftVolts);
+        SmartDashboard.putNumber("Right DT Volts", rightVolts);
+        leftA.setVoltage(leftVolts);
+        rightA.setVoltage(rightVolts);
+    }
+    public void tankDrive(double left, double right){
+        tankDriveVolts(left*12, right*12);
+    }
+
+    public Rotation2d getHeading(){
+        return Rotation2d.fromDegrees(gyro.getAngle());
+    }
+
+    public void resetEncoders(){
+        leftEncoder.reset();
+        rightEncoder.reset();
+    }
+    public void resetGyro(){
+        gyro.reset();
+    }
+
+    public void log(){
+        SmartDashboard.putNumber("Left Encoder", leftEncoder.get());
+        SmartDashboard.putNumber("Right Encoder", rightEncoder.get());
+        SmartDashboard.putNumber("Gyro Heading", getHeading().getDegrees());
     }
 }

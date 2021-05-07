@@ -23,4 +23,7 @@ public class Constants {
         public static final double kGearRatio = 8.46;
         public static final double kRampRaw = 0.08;
     }
+    public static class LiftConstants{
+        public static final int kMaxPos = 4300;
+    }
 }
