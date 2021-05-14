@@ -10,21 +10,24 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Intake extends SubsystemBase {
 
-    private Spark intakeL = new Spark(4);
-    private Spark intakeR = new Spark(5);
+    private Spark intakeR = new Spark(4);
+    private Spark intakeL = new Spark(5);
 
     private double targetVolts = 0;
 
+    public final double kNominalVolts = 0.2;
+
     public Intake() {
-        intakeL.setSafetyEnabled(false);
         intakeR.setSafetyEnabled(false);
+        intakeL.setSafetyEnabled(false);
+        intakeR.setInverted(true);
     }
     
     @Override
     public void periodic() {
         SmartDashboard.putNumber("Intake Volts", targetVolts);
+        intakeR.setVoltage(targetVolts);
         intakeL.setVoltage(targetVolts);
-        intakeR.setVoltage(-targetVolts);
     }
     
     public void setIntake(double percent){

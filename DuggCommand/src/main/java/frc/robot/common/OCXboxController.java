@@ -29,8 +29,8 @@ public class OCXboxController extends XboxController {
     public final JoystickButton startButton;
     public final JoystickButton stickLeftButton;
     public final JoystickButton stickRightButton;
-    public final edu.wpi.first.wpilibj2.command.button.Button leftTriggerButton; // curse disambiguation
-    public final edu.wpi.first.wpilibj2.command.button.Button rightTriggerButton;
+    public final edu.wpi.first.wpilibj2.command.button.Button triggerLeftButton; // curse disambiguation
+    public final edu.wpi.first.wpilibj2.command.button.Button triggerRightButton;
 
     public enum DriveMode { // Choose our tele-op control method
         TANK, TANKVOLTS, ARCADE, ARCADEVOLTS, CURVATURE, CURVATUREVOLTS
@@ -67,8 +67,8 @@ public class OCXboxController extends XboxController {
         startButton = new JoystickButton(this, XboxController.Button.kStart.value);
         stickLeftButton = new JoystickButton(this, XboxController.Button.kStickLeft.value);
         stickRightButton = new JoystickButton(this, XboxController.Button.kStickRight.value);
-        leftTriggerButton = new edu.wpi.first.wpilibj2.command.button.Button(() -> getTriggerAxis(Hand.kLeft) > 0.15);
-        rightTriggerButton = new edu.wpi.first.wpilibj2.command.button.Button(() -> getTriggerAxis(Hand.kRight) > 0.15);
+        triggerLeftButton = new edu.wpi.first.wpilibj2.command.button.Button(() -> getTriggerAxis(Hand.kLeft) > 0.2);
+        triggerRightButton = new edu.wpi.first.wpilibj2.command.button.Button(() -> getTriggerAxis(Hand.kRight) > 0.2);
     }
 
     public DriveMode getMode() {

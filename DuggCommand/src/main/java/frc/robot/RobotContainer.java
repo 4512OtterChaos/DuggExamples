@@ -15,19 +15,19 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.common.OCXboxController;
 import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.Intake;
-import frc.robot.subsystems.Lift;
+import frc.robot.subsystems.Elevator;
 
 public class RobotContainer {
 
     private Drivetrain drivetrain;
-    private Lift lift;
+    private Elevator elevator;
     private Intake intake;
 
     private OCXboxController driver = new OCXboxController(0);
     
     public RobotContainer() {
         drivetrain = new Drivetrain();
-        lift = new Lift();
+        elevator = new Elevator();
         intake = new Intake();
 
         configureButtonBindings();
@@ -50,21 +50,26 @@ public class RobotContainer {
             .whenReleased(()->driver.setDriveSpeed(OCXboxController.kSpeedDefault));
         */
 
-        new JoystickButton(driver, XboxController.Button.kBumperRight.value)
-            .whenPressed(()->lift.setLift(0.5),lift)
-            .whenReleased(()->lift.setLift(0),lift);
-        new JoystickButton(driver, XboxController.Button.kBumperLeft.value)
-            .whenPressed(()->lift.setLift(-0.5),lift)
-            .whenReleased(()->lift.setLift(0),lift);
+        driver.bumperRightButton
+            .whenPressed(()->elevator.setPercent(0.5),elevator)
+            .whenReleased(()->elevator.setPercent(0),elevator);
+        driver.bumperLeftButton
+            .whenPressed(()->elevator.setPercent(-0.5),elevator)
+            .whenReleased(()->elevator.setPercent(0),elevator);
 
-        double leftTrigger = driver.getTriggerAxis(Hand.kLeft);
-        double rightTrigger = driver.getTriggerAxis(Hand.kRight);
-        new Trigger(()->rightTrigger>0.2)
-            .whenActive(()->intake.setIntake(rightTrigger),intake)
-            .whenInactive(()->intake.setIntake(0),intake);
-        new Trigger(()->leftTrigger>0.2)
-            .whenActive(()->intake.setIntake(-leftTrigger),intake)
-            .whenInactive(()->intake.setIntake(0),intake);
+        driver.aButton
+            .whenPressed(()->elevator.setPosition(0));
+        driver.bButton
+            .whenPressed(()->elevator.setPosition(20));
+        driver.yButton
+            .whenPressed(()->elevator.setPosition(80));
+
+        driver.triggerRightButton
+            .whileHeld(()->intake.setIntake(driver.getTriggerAxis(Hand.kRight)),intake)
+            .whenReleased(()->intake.setIntake(intake.kNominalVolts),intake);
+        driver.triggerLeftButton
+            .whileHeld(()->intake.setIntake(-driver.getTriggerAxis(Hand.kLeft)),intake)
+            .whenReleased(()->intake.setIntake(intake.kNominalVolts),intake);
     }
     
     /**
