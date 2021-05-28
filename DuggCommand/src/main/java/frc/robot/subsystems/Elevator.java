@@ -4,6 +4,8 @@
 
 package frc.robot.subsystems;
 
+import edu.wpi.first.wpilibj.AddressableLED;
+import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.Spark;
@@ -13,6 +15,8 @@ import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants.ElevConstants;
+import frc.robot.common.MathHelp;
 
 public class Elevator extends SubsystemBase {
     
@@ -24,16 +28,24 @@ public class Elevator extends SubsystemBase {
     private DigitalInput switchUp = new DigitalInput(1);
     private DigitalInput switchDown = new DigitalInput(8);
 
+    private AddressableLED led = new AddressableLED(9);
+    private AddressableLEDBuffer buffer = new AddressableLEDBuffer(60);
+
     private double targetVolts = 0;
     private double targetInches = 0;
     private boolean isManual = true;
 
     private final double kAntiGrav = 0.9;
 
-    private SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(0, 0.286, 0);
-    private ProfiledPIDController controller = new ProfiledPIDController(0.1, 0, 0, new Constraints(25, 30));
+    private SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(0, 0.3, 0);
+    private ProfiledPIDController controller = new ProfiledPIDController(0, 0, 0, new Constraints(25, 30));
 
     public Elevator() {
+        encoder.setDistancePerPulse(0.0191860465); // inches per edge
+
+        led.setLength(buffer.getLength());
+        led.setData(buffer);
+        led.start();
     }
     
     @Override
@@ -59,13 +71,34 @@ public class Elevator extends SubsystemBase {
         elevA.setVoltage(adjustedVolts);
         elevB.setVoltage(adjustedVolts);
 
-        encoder.setDistancePerPulse(0.0191860465); // inches per edge
+        SmartDashboard.putNumber("Elevator Counts", getCounts());
         SmartDashboard.putNumber("Elevator Height", getPosInches());
         SmartDashboard.putNumber("Elevator Rate", getRateInches());
+
+        double actualPercent = MathHelp.findPercentage(getPosInches(), ElevConstants.kLEDBottomPos, ElevConstants.kLEDTopPos);
+        double setpoint = isManual ? getPosInches() : controller.getSetpoint().position;
+        double setpointPercent = MathHelp.findPercentage(setpoint, ElevConstants.kLEDBottomPos, ElevConstants.kLEDTopPos);
+        double goal = isManual ? getPosInches() : controller.getGoal().position;
+        double goalPercent = MathHelp.findPercentage(goal, ElevConstants.kLEDBottomPos, ElevConstants.kLEDTopPos);
+
+        int actualIndex = (int)MathHelp.lerp(actualPercent, 0, 59);
+        int setpointIndex = (int)MathHelp.lerp(setpointPercent, 0, 59);
+        int goalIndex = (int)MathHelp.lerp(goalPercent, 0, 59);
+
+        for(int i=0;i<buffer.getLength();i++){
+            if(i<=setpointIndex){
+                if(i==setpointIndex) buffer.setHSV(i, 25, 255, 200);
+                else buffer.setHSV(i, 30, 255, 50);
+            }
+            else buffer.setHSV(i, 0, 0, 0);
+            if(i==goalIndex) buffer.setHSV(i, 120, 255, 200);
+            if(i==actualIndex) buffer.setHSV(i, 0, 255, 200);
+        }
+        led.setData(buffer);
     }
 
     public void setPercent(double percent){
-        targetVolts = percent*12;
+        setVolts(percent*12);
     }
     public void setVolts(double volts){
         isManual = true;

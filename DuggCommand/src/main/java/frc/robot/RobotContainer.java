@@ -51,10 +51,10 @@ public class RobotContainer {
         */
 
         driver.bumperRightButton
-            .whenPressed(()->elevator.setPercent(0.5),elevator)
+            .whenPressed(()->elevator.setPercent(0.2),elevator)
             .whenReleased(()->elevator.setPercent(0),elevator);
         driver.bumperLeftButton
-            .whenPressed(()->elevator.setPercent(-0.5),elevator)
+            .whenPressed(()->elevator.setPercent(-0.2),elevator)
             .whenReleased(()->elevator.setPercent(0),elevator);
 
         driver.aButton
@@ -62,7 +62,7 @@ public class RobotContainer {
         driver.bButton
             .whenPressed(()->elevator.setPosition(20));
         driver.yButton
-            .whenPressed(()->elevator.setPosition(80));
+            .whenPressed(()->elevator.setPosition(40));
 
         driver.triggerRightButton
             .whileHeld(()->intake.setIntake(driver.getTriggerAxis(Hand.kRight)),intake)

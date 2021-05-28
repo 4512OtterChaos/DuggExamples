@@ -25,6 +25,8 @@ public class Constants {
     }
     public static class ElevConstants{
         public static final int kMaxEdges = 4300;
+        public static final double kLEDBottomPos = 3.7;
+        public static final double kLEDTopPos = 43.2;
         public static final int kEdgesPerRev = 360;
         public static final double kInchesTravelHeight = 82.5;
     }
