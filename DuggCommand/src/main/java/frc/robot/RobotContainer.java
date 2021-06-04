@@ -51,10 +51,10 @@ public class RobotContainer {
         */
 
         driver.bumperRightButton
-            .whenPressed(()->elevator.setPercent(0.2),elevator)
+            .whenPressed(()->elevator.setPercent(0.25),elevator)
             .whenReleased(()->elevator.setPercent(0),elevator);
         driver.bumperLeftButton
-            .whenPressed(()->elevator.setPercent(-0.2),elevator)
+            .whenPressed(()->elevator.setPercent(-0.25),elevator)
             .whenReleased(()->elevator.setPercent(0),elevator);
 
         driver.aButton

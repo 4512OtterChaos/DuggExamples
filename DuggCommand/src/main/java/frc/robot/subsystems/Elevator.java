@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj.controller.ProfiledPIDController;
 import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.trajectory.TrapezoidProfile.Constraints;
+import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.ElevConstants;
 import frc.robot.common.MathHelp;
@@ -35,10 +36,10 @@ public class Elevator extends SubsystemBase {
     private double targetInches = 0;
     private boolean isManual = true;
 
-    private final double kAntiGrav = 0.9;
+    private final double kAntiGrav = 1.1;
 
     private SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(0, 0.3, 0);
-    private ProfiledPIDController controller = new ProfiledPIDController(0, 0, 0, new Constraints(25, 30));
+    private ProfiledPIDController controller = new ProfiledPIDController(1.75, 0, 0, new Constraints(30, 50));
 
     public Elevator() {
         encoder.setDistancePerPulse(0.0191860465); // inches per edge
@@ -58,7 +59,7 @@ public class Elevator extends SubsystemBase {
             adjustedVolts += feedforward.calculate(controller.getSetpoint().velocity);
         }
 
-        adjustedVolts += kAntiGrav;
+        if(!(getPosInches()<1 && targetVolts<=0)) adjustedVolts += kAntiGrav;
 
         // Bound elevator travel by limit switches and encoder counts
         if(getBotSwitch() || getPosInches() < -2){
@@ -75,6 +76,10 @@ public class Elevator extends SubsystemBase {
         SmartDashboard.putNumber("Elevator Height", getPosInches());
         SmartDashboard.putNumber("Elevator Rate", getRateInches());
 
+        displayLED();
+    }
+
+    public void displayLED(){
         double actualPercent = MathHelp.findPercentage(getPosInches(), ElevConstants.kLEDBottomPos, ElevConstants.kLEDTopPos);
         double setpoint = isManual ? getPosInches() : controller.getSetpoint().position;
         double setpointPercent = MathHelp.findPercentage(setpoint, ElevConstants.kLEDBottomPos, ElevConstants.kLEDTopPos);
@@ -85,14 +90,29 @@ public class Elevator extends SubsystemBase {
         int setpointIndex = (int)MathHelp.lerp(setpointPercent, 0, 59);
         int goalIndex = (int)MathHelp.lerp(goalPercent, 0, 59);
 
+        Color[] positionColors = new Color[3]; // actual, setpoint, goal
+
+        for(int i=0;i<positionColors.length;i++){
+            int index = 0;
+            if(i==0) index = actualIndex;
+            if(i==1) index = setpointIndex;
+            if(i==2) index = goalIndex;
+            Color old = positionColors[i];
+            if(old==null) old = Color.kBlack;
+            if(index==actualIndex) old = new Color(old.red+1,old.green,old.blue);
+            if(index==setpointIndex) old = new Color(old.red,old.green,old.blue+1);
+            if(index==goalIndex) old = new Color(old.red,old.green+1,old.blue);
+            positionColors[i] = old;
+        }
+
         for(int i=0;i<buffer.getLength();i++){
             if(i<=setpointIndex){
-                if(i==setpointIndex) buffer.setHSV(i, 25, 255, 200);
-                else buffer.setHSV(i, 30, 255, 50);
+                if(i==setpointIndex) buffer.setLED(i, positionColors[1]);
+                else buffer.setHSV(i, 25, 255, 50);
             }
             else buffer.setHSV(i, 0, 0, 0);
-            if(i==goalIndex) buffer.setHSV(i, 120, 255, 200);
-            if(i==actualIndex) buffer.setHSV(i, 0, 255, 200);
+            if(i==goalIndex) buffer.setLED(i, positionColors[2]);
+            if(i==actualIndex) buffer.setLED(i, positionColors[0]);
         }
         led.setData(buffer);
     }
