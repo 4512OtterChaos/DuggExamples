@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj.controller.PIDController;
 import edu.wpi.first.wpilibj.controller.ProfiledPIDController;
 import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
+import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveOdometry;
@@ -55,6 +56,10 @@ public class Drivetrain extends SubsystemBase {
     private DifferentialDriveOdometry odometry;
     private Field2d field = new Field2d();
 
+    private double leftTargetVolts = 0;
+    private double rightTargetVolts = 0;
+    private boolean isManual = false;
+
     public Drivetrain() {
         configDrive(leftA,leftB,rightA,rightB);
 
@@ -65,7 +70,10 @@ public class Drivetrain extends SubsystemBase {
         rightB.follow(rightA);
         rightB.setInverted(InvertType.FollowMaster);
 
-        odometry = new DifferentialDriveOdometry(new Rotation2d());
+        leftEncoder.setDistancePerPulse(kWheelDiameterMeters*Math.PI/360);
+        rightEncoder.setDistancePerPulse(kWheelDiameterMeters*Math.PI/360);
+
+        odometry = new DifferentialDriveOdometry(getHeading());
     }
 
     private void configDrive(WPI_TalonSRX... motors){
@@ -78,21 +86,52 @@ public class Drivetrain extends SubsystemBase {
 
     @Override
     public void periodic() {
-        log();
-    }
+        double leftVolts = leftTargetVolts;
+        double rightVolts = rightTargetVolts;
+        if(!isManual){
+            double leftTarget = leftController.getGoal().position;
+            double rightTarget = rightController.getGoal().position;
+            
+            leftVolts = feedforward.calculate(leftTarget);
+            rightVolts = feedforward.calculate(rightTarget);
 
-    public void tankDriveVolts(double leftVolts, double rightVolts){
+            leftVolts += leftController.calculate(leftEncoder.getRate());
+            rightVolts += rightController.calculate(rightEncoder.getRate());
+        }
         SmartDashboard.putNumber("Left DT Volts", leftVolts);
         SmartDashboard.putNumber("Right DT Volts", rightVolts);
         leftA.setVoltage(leftVolts);
         rightA.setVoltage(rightVolts);
+
+        odometry.update(getHeading(), leftEncoder.getDistance(), rightEncoder.getDistance());
+        field.setRobotPose(odometry.getPoseMeters());
+        log();
     }
-    public void tankDrive(double left, double right){
+
+    public void tankDrivePercent(double left, double right){
         tankDriveVolts(left*12, right*12);
+    }
+    public void tankDriveVolts(double leftVolts, double rightVolts){
+        isManual = true;
+        leftTargetVolts = leftVolts;
+        rightTargetVolts = rightVolts;
+    }
+
+    public void tankDriveVelocity(double leftMetersPerSecond, double rightMetersPerSecond){
+        if(isManual){
+            isManual = false;
+            leftController.reset(leftEncoder.getDistance(), leftEncoder.getRate());
+            rightController.reset(rightEncoder.getDistance(), rightEncoder.getRate());
+        }
+        leftController.setGoal(leftMetersPerSecond);
+        rightController.setGoal(rightMetersPerSecond);
     }
 
     public Rotation2d getHeading(){
         return Rotation2d.fromDegrees(gyro.getAngle());
+    }
+    public Pose2d getPoseMeters(){
+        return odometry.getPoseMeters();
     }
 
     public void resetEncoders(){
@@ -101,6 +140,18 @@ public class Drivetrain extends SubsystemBase {
     }
     public void resetGyro(){
         gyro.reset();
+    }
+    public void resetPID(){
+        leftController.reset(leftEncoder.getDistance(), leftEncoder.getRate());
+        rightController.reset(rightEncoder.getDistance(), rightEncoder.getRate());
+    }
+    public void resetOdometry(){
+        resetOdometry(new Pose2d());
+    }
+    public void resetOdometry(Pose2d poseMeters){
+        resetEncoders();
+        resetPID();
+        odometry.resetPosition(poseMeters, getHeading());
     }
 
     public void log(){

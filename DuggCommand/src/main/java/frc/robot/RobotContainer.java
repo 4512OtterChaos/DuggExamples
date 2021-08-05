@@ -35,7 +35,7 @@ public class RobotContainer {
     
     private void configureButtonBindings() {
         RunCommand teleDrive = new RunCommand(()->{
-            drivetrain.tankDrive(driver.getLeftArcade(), driver.getRightArcade());
+            drivetrain.tankDrivePercent(driver.getLeftArcade(), driver.getRightArcade());
         }, drivetrain);
 
         drivetrain.setDefaultCommand(teleDrive);
