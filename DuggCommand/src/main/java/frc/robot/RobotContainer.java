@@ -6,7 +6,8 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
-import edu.wpi.first.wpilibj.GenericHID.Hand;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive.WheelSpeeds;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
@@ -34,9 +35,14 @@ public class RobotContainer {
     }
     
     private void configureButtonBindings() {
-        RunCommand teleDrive = new RunCommand(()->{
-            drivetrain.tankDrivePercent(driver.getLeftArcade(), driver.getRightArcade());
-        }, drivetrain);
+        Command teleDrive = new RunCommand(()->{
+            WheelSpeeds wheelSpeeds = DifferentialDrive.arcadeDriveIK(
+                driver.getForward(),
+                -driver.getTurn(),
+                true
+            );
+            drivetrain.tankDrivePercent(wheelSpeeds.left, wheelSpeeds.right);
+        }, drivetrain).beforeStarting(()->driver.resetLimiters());
 
         drivetrain.setDefaultCommand(teleDrive);
 
@@ -50,10 +56,10 @@ public class RobotContainer {
             .whenReleased(()->driver.setDriveSpeed(OCXboxController.kSpeedDefault));
         */
 
-        driver.bumperRightButton
+        driver.rightBumper
             .whenPressed(()->elevator.setPercent(0.25),elevator)
             .whenReleased(()->elevator.setPercent(0),elevator);
-        driver.bumperLeftButton
+        driver.leftBumper
             .whenPressed(()->elevator.setPercent(-0.25),elevator)
             .whenReleased(()->elevator.setPercent(0),elevator);
 
@@ -64,10 +70,10 @@ public class RobotContainer {
         driver.yButton
             .whenPressed(()->elevator.setPosition(40));
 
-        driver.triggerRightButton
+        driver.rightTriggerButton
             .whileHeld(()->intake.setIntake(driver.getRightTriggerAxis()),intake)
             .whenReleased(()->intake.setIntake(intake.kNominalVolts),intake);
-        driver.triggerLeftButton
+        driver.leftTriggerButton
             .whileHeld(()->intake.setIntake(-driver.getLeftTriggerAxis()),intake)
             .whenReleased(()->intake.setIntake(intake.kNominalVolts),intake);
     }
