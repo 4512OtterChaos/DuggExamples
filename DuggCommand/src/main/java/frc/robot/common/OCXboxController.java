@@ -7,7 +7,7 @@
 
 package frc.robot.common;
 
-import edu.wpi.first.wpilibj.SlewRateLimiter;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.button.Button;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;

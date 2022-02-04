@@ -65,10 +65,10 @@ public class RobotContainer {
             .whenPressed(()->elevator.setPosition(40));
 
         driver.triggerRightButton
-            .whileHeld(()->intake.setIntake(driver.getTriggerAxis(Hand.kRight)),intake)
+            .whileHeld(()->intake.setIntake(driver.getRightTriggerAxis()),intake)
             .whenReleased(()->intake.setIntake(intake.kNominalVolts),intake);
         driver.triggerLeftButton
-            .whileHeld(()->intake.setIntake(-driver.getTriggerAxis(Hand.kLeft)),intake)
+            .whileHeld(()->intake.setIntake(-driver.getLeftTriggerAxis()),intake)
             .whenReleased(()->intake.setIntake(intake.kNominalVolts),intake);
     }
     
