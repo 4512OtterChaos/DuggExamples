@@ -37,16 +37,21 @@ public class OCXboxController extends XboxController {
     public final POVButton povDownButton;
     public final POVButton povLeftButton;
 
+    // ignore joystick values smaller than this
     private static final double kDeadband = 0.12;
 
+    // drive "speed" percentages (e.g. 40% full speed)
     public static final double kSpeedDefault = 0.4;
     public static final double kSpeedFast = 0.55;
     public static final double kSpeedMax = 0.8;
-    private double drivespeed = kSpeedDefault;
 
-    private SlewRateLimiter forwardLimiter = new SlewRateLimiter(4);
-    private SlewRateLimiter strafeLimiter = new SlewRateLimiter(4);
-    private SlewRateLimiter turnLimiter = new SlewRateLimiter(4);
+    private double drivespeed = kSpeedDefault;
+    private static final double kTurnDrivespeed = kSpeedDefault;
+
+    // smooth out sudden joystick movements
+    private SlewRateLimiter forwardLimiter = new SlewRateLimiter(1.0 / 0.5); // 1 / x seconds to 100%
+    private SlewRateLimiter strafeLimiter = new SlewRateLimiter(1.0 / 0.5);
+    private SlewRateLimiter turnLimiter = new SlewRateLimiter(1 / 0.33);
 
     /**
      * Constructs XboxController on DS joystick port.
@@ -64,8 +69,8 @@ public class OCXboxController extends XboxController {
         startButton = new JoystickButton(this, XboxController.Button.kStart.value);
         leftStick = new JoystickButton(this, XboxController.Button.kLeftStick.value);
         rightStick = new JoystickButton(this, XboxController.Button.kRightStick.value);
-        leftTriggerButton = new edu.wpi.first.wpilibj2.command.button.Button(() -> getLeftTriggerAxis() > 0.15);
-        rightTriggerButton = new edu.wpi.first.wpilibj2.command.button.Button(() -> getRightTriggerAxis() > 0.15);
+        leftTriggerButton = new edu.wpi.first.wpilibj2.command.button.Button(() -> getLeftTriggerAxis() > kDeadband);
+        rightTriggerButton = new edu.wpi.first.wpilibj2.command.button.Button(() -> getRightTriggerAxis() > kDeadband);
         povUpButton = new POVButton(this, 0);
         povRightButton = new POVButton(this, 90);
         povDownButton = new POVButton(this, 180);
@@ -127,7 +132,7 @@ public class OCXboxController extends XboxController {
      * @return Percentage(-1 to 1)
      */
     public double getForward() {
-        return forwardLimiter.calculate(getLeftY() * drivespeed);
+        return forwardLimiter.calculate(getLeftY(2) * drivespeed);
     }
 
     /**
@@ -137,7 +142,7 @@ public class OCXboxController extends XboxController {
      * @return Percentage(-1 to 1)
      */
     public double getStrafe() {
-        return strafeLimiter.calculate(getLeftX() * drivespeed);
+        return strafeLimiter.calculate(getLeftX(2) * drivespeed);
     }
 
     /**
@@ -147,7 +152,7 @@ public class OCXboxController extends XboxController {
      * @return Percentage(-1 to 1)
      */
     public double getTurn() {
-        return turnLimiter.calculate(getRightX() * 0.4);
+        return turnLimiter.calculate(getRightX(2) * kTurnDrivespeed);
     }
 
     /**
@@ -157,5 +162,14 @@ public class OCXboxController extends XboxController {
         forwardLimiter.reset(0);
         strafeLimiter.reset(0);
         turnLimiter.reset(0);
+    }
+
+    public void rumble(double value){
+        setRumble(RumbleType.kRightRumble, value);
+        setRumble(RumbleType.kLeftRumble, value);
+    }
+    public void rumble(boolean left, double value){
+        RumbleType side = left ? RumbleType.kLeftRumble : RumbleType.kRightRumble;
+        setRumble(side, value);
     }
 }

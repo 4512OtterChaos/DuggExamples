@@ -2,7 +2,7 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot.subsystems;
+package frc.robot.subsystems.elevator;
 
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
@@ -15,8 +15,9 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.constants.ElevConstants;
 import frc.robot.common.MathHelp;
+
+import static frc.robot.subsystems.elevator.ElevConstants.*;
 
 public class Elevator extends SubsystemBase {
     
@@ -25,6 +26,7 @@ public class Elevator extends SubsystemBase {
 
     private Encoder encoder = new Encoder(6, 7);
 
+    // limit switches for top/bottom detection
     private DigitalInput switchUp = new DigitalInput(1);
     private DigitalInput switchDown = new DigitalInput(8);
 
@@ -35,10 +37,11 @@ public class Elevator extends SubsystemBase {
     private double targetInches = 0;
     private boolean isManual = true;
 
+    // resist gravity
     private final double kAntiGrav = 1.1;
 
-    private SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(0, 0.3, 0);
-    private ProfiledPIDController controller = new ProfiledPIDController(1.75, 0, 0, new Constraints(30, 50));
+    private SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(kStaticFF, kVelocityFF, kAccelFF);
+    private ProfiledPIDController controller = new ProfiledPIDController(kP, kI, kD, kConstraintsInches);
 
     public Elevator() {
         encoder.setDistancePerPulse(0.0191860465); // inches per edge
@@ -53,24 +56,27 @@ public class Elevator extends SubsystemBase {
         
         double adjustedVolts = targetVolts;
 
+        // handoff between manual / automatic control
         if(!isManual){
             adjustedVolts = controller.calculate(getPosInches(), targetInches);
             adjustedVolts += feedforward.calculate(controller.getSetpoint().velocity);
         }
 
+        // use anti-gravity
         if(!(getPosInches()<1 && targetVolts<=0)) adjustedVolts += kAntiGrav;
 
-        // Bound elevator travel by limit switches and encoder counts
-        if(getBotSwitch() || getPosInches() < -2){
+        // Limit elevator travel by limit switches and encoder counts
+        if(getBotSwitch() || getPosInches() <= 0){
             encoder.reset();
             adjustedVolts = Math.max(0, adjustedVolts);
         }
         if(getTopSwitch() || getPosInches() > 82) adjustedVolts = Math.min(adjustedVolts, kAntiGrav);
 
-        SmartDashboard.putNumber("Elevator Volts", adjustedVolts);
         elevA.setVoltage(adjustedVolts);
         elevB.setVoltage(adjustedVolts);
 
+        // log
+        SmartDashboard.putNumber("Elevator Volts", adjustedVolts);
         SmartDashboard.putNumber("Elevator Counts", getCounts());
         SmartDashboard.putNumber("Elevator Height", getPosInches());
         SmartDashboard.putNumber("Elevator Rate", getRateInches());
@@ -78,6 +84,44 @@ public class Elevator extends SubsystemBase {
         displayLED();
     }
 
+    // manual speed control
+    public void setPercent(double percent){
+        setVolts(percent*12);
+    }
+    public void setVolts(double volts){
+        isManual = true;
+        targetVolts = volts;
+    }
+
+    // automatic position control
+    public void setPosition(double inchesHeight){
+        if(isManual) controller.reset(getPosInches(), getRateInches());
+        isManual = false;
+        targetInches = inchesHeight;
+    }
+
+    public int getCounts(){
+        return encoder.get();
+    }
+    public double getPosInches(){
+        return encoder.getDistance();
+    }
+    public double getRateInches(){
+        return encoder.getRate();
+    }
+
+    public boolean getTopSwitch(){
+        return switchUp.get();
+    }
+    public boolean getBotSwitch(){
+        return switchDown.get();
+    }
+
+    public void resetLiftEncoder(){
+        encoder.reset();
+    }
+
+    // use LEDs to indicate elevator position/setpoint
     public void displayLED(){
         double actualPercent = MathHelp.findPercentage(getPosInches(), ElevConstants.kLEDBottomPos, ElevConstants.kLEDTopPos);
         double setpoint = isManual ? getPosInches() : controller.getSetpoint().position;
@@ -114,40 +158,5 @@ public class Elevator extends SubsystemBase {
             if(i==actualIndex) buffer.setLED(i, positionColors[0]);
         }
         led.setData(buffer);
-    }
-
-    public void setPercent(double percent){
-        setVolts(percent*12);
-    }
-    public void setVolts(double volts){
-        isManual = true;
-        targetVolts = volts;
-    }
-
-    public void setPosition(double inchesHeight){
-        if(isManual) controller.reset(getPosInches(), getRateInches());
-        isManual = false;
-        targetInches = inchesHeight;
-    }
-
-    public int getCounts(){
-        return encoder.get();
-    }
-    public double getPosInches(){
-        return encoder.getDistance();
-    }
-    public double getRateInches(){
-        return encoder.getRate();
-    }
-
-    public boolean getTopSwitch(){
-        return switchUp.get();
-    }
-    public boolean getBotSwitch(){
-        return switchDown.get();
-    }
-
-    public void resetLiftEncoder(){
-        encoder.reset();
     }
 }

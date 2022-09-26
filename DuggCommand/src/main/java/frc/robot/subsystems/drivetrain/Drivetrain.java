@@ -2,9 +2,9 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot.subsystems;
+package frc.robot.subsystems.drivetrain;
 
-import static frc.robot.constants.DriveConstants.*;
+import static frc.robot.subsystems.drivetrain.DriveConstants.*;
 
 import com.ctre.phoenix.motorcontrol.InvertType;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
@@ -13,6 +13,7 @@ import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.SPI.Port;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -38,17 +39,12 @@ public class Drivetrain extends SubsystemBase {
     private ADXRS450_Gyro gyro = new ADXRS450_Gyro(Port.kOnboardCS0);
 
     private SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(kStaticFF, kVelocityFF);
-    private TrapezoidProfile.Constraints constraints = new Constraints(kMaxVelMeters, kMaxAccelMeters);
-    private ProfiledPIDController leftController = new ProfiledPIDController
-        (
-            kP, kI, kD,
-            constraints
-        );
-    private ProfiledPIDController rightController = new ProfiledPIDController
-        (
-            kP, kI, kD,
-            constraints
-        );
+    private PIDController leftController = new PIDController(
+        kP, kI, kD
+    );
+    private PIDController rightController = new PIDController(
+        kP, kI, kD
+    );
 
     private DifferentialDriveKinematics kinematics = new DifferentialDriveKinematics(kTrackWidthMeters);
     private DifferentialDriveOdometry odometry;
@@ -87,8 +83,8 @@ public class Drivetrain extends SubsystemBase {
         double leftVolts = leftTargetVolts;
         double rightVolts = rightTargetVolts;
         if(!isManual){
-            double leftTarget = leftController.getGoal().position;
-            double rightTarget = rightController.getGoal().position;
+            double leftTarget = leftController.getSetpoint();
+            double rightTarget = rightController.getSetpoint();
             
             leftVolts = feedforward.calculate(leftTarget);
             rightVolts = feedforward.calculate(rightTarget);
@@ -116,13 +112,8 @@ public class Drivetrain extends SubsystemBase {
     }
 
     public void tankDriveVelocity(double leftMetersPerSecond, double rightMetersPerSecond){
-        if(isManual){
-            isManual = false;
-            leftController.reset(leftEncoder.getDistance(), leftEncoder.getRate());
-            rightController.reset(rightEncoder.getDistance(), rightEncoder.getRate());
-        }
-        leftController.setGoal(leftMetersPerSecond);
-        rightController.setGoal(rightMetersPerSecond);
+        leftController.setSetpoint(leftMetersPerSecond);
+        rightController.setSetpoint(rightMetersPerSecond);
     }
 
     public Rotation2d getHeading(){
@@ -140,8 +131,8 @@ public class Drivetrain extends SubsystemBase {
         gyro.reset();
     }
     public void resetPID(){
-        leftController.reset(leftEncoder.getDistance(), leftEncoder.getRate());
-        rightController.reset(rightEncoder.getDistance(), rightEncoder.getRate());
+        leftController.reset();
+        rightController.reset();
     }
     public void resetOdometry(){
         resetOdometry(new Pose2d());

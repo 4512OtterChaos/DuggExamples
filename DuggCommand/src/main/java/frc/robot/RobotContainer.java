@@ -10,12 +10,13 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import frc.robot.common.OCXboxController;
-import frc.robot.subsystems.Drivetrain;
-import frc.robot.subsystems.Intake;
-import frc.robot.subsystems.Elevator;
+import frc.robot.subsystems.drivetrain.Drivetrain;
+import frc.robot.subsystems.elevator.Elevator;
+import frc.robot.subsystems.intake.Intake;
 
 public class RobotContainer {
 
+    // subsystems
     private Drivetrain drivetrain;
     private Elevator elevator;
     private Intake intake;
@@ -30,28 +31,21 @@ public class RobotContainer {
         configureButtonBindings();
     }
     
+    // bind commands to button inputs
     private void configureButtonBindings() {
+        // "arcade" drivetrain control for tele-op
         Command teleDrive = new RunCommand(()->{
             WheelSpeeds wheelSpeeds = DifferentialDrive.arcadeDriveIK(
                 driver.getForward(),
                 -driver.getTurn(),
-                true
+                false
             );
             drivetrain.tankDrivePercent(wheelSpeeds.left, wheelSpeeds.right);
         }, drivetrain).beforeStarting(()->driver.resetLimiters());
 
         drivetrain.setDefaultCommand(teleDrive);
 
-        /*
-        new JoystickButton(driver, XboxController.Button.kBumperRight.value)
-            .whenPressed(()->driver.setDriveSpeed(OCXboxController.kSpeedFast))
-            .whenReleased(()->driver.setDriveSpeed(OCXboxController.kSpeedDefault));
-
-        new JoystickButton(driver, XboxController.Button.kBumperLeft.value)
-            .whenPressed(()->driver.setDriveSpeed(OCXboxController.kSpeedMax))
-            .whenReleased(()->driver.setDriveSpeed(OCXboxController.kSpeedDefault));
-        */
-
+        // manual elevator speed control
         driver.rightBumper
             .whenPressed(()->elevator.setPercent(0.25),elevator)
             .whenReleased(()->elevator.setPercent(0),elevator);
@@ -59,6 +53,7 @@ public class RobotContainer {
             .whenPressed(()->elevator.setPercent(-0.25),elevator)
             .whenReleased(()->elevator.setPercent(0),elevator);
 
+        // automatic elevator position control
         driver.aButton
             .whenPressed(()->elevator.setPosition(0));
         driver.bButton
@@ -66,6 +61,7 @@ public class RobotContainer {
         driver.yButton
             .whenPressed(()->elevator.setPosition(40));
 
+        // manual intake speed control
         driver.rightTriggerButton
             .whileHeld(()->intake.setIntake(driver.getRightTriggerAxis()),intake)
             .whenReleased(()->intake.setIntake(intake.kNominalVolts),intake);
