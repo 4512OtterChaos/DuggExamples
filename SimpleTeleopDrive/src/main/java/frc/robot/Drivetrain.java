@@ -27,11 +27,28 @@ public class Drivetrain {
             motor.configFactoryDefault();
             motor.setNeutralMode(NeutralMode.Brake);
             motor.configOpenloopRamp(0.08);
+            motor.configVoltageCompSaturation(12);
+            motor.enableVoltageCompensation(true);
         }
     }
 
-    public void drive(double leftPercent, double rightPercent) {
+    public void tankDrive(double leftPercent, double rightPercent) {
         leftA.set(leftPercent);
         rightA.set(rightPercent);
+    }
+    
+    public void arcadeDrive(double forwardPercent, double turnPercent) {
+        // translate into left/right drivetrain side speeds
+        double leftPercent = forwardPercent - turnPercent;
+        double rightPercent = forwardPercent + turnPercent;
+
+        // re-scale percentages (we can only go 100% speed)
+        double maxMagnitude = Math.max(Math.abs(leftPercent), Math.abs(rightPercent));
+        if(maxMagnitude > 1.0) {
+            leftPercent /= maxMagnitude;
+            rightPercent /= maxMagnitude;
+        }
+
+        tankDrive(leftPercent, rightPercent);
     }
 }

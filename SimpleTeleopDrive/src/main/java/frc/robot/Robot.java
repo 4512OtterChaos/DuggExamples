@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 
@@ -17,6 +18,9 @@ public class Robot extends TimedRobot {
 
     private Drivetrain drivetrain;
     private XboxController controller;
+
+    private SlewRateLimiter forwardLimiter = new SlewRateLimiter(1.0 / 0.5); // 0.5 seconds to 100% output
+    private SlewRateLimiter turnLimiter = new SlewRateLimiter(1.0 / 0.5);
 
     /**
     * This function is run when the robot is first started up and should be used for any
@@ -38,37 +42,27 @@ public class Robot extends TimedRobot {
     public void autonomousPeriodic() {}
     
     @Override
-    public void teleopInit() {}
+    public void teleopInit() {
+        forwardLimiter.reset(0);
+        turnLimiter.reset(0);
+    }
     
     @Override
     public void teleopPeriodic() {
 
         // "arcade" style joystick control
-        double robotForward = -controller.getLeftY();
-        double robotTurn = -controller.getRightX();
-
-        // translate into left/right drivetrain side speeds
-        double leftSpeed = robotForward - robotTurn;
-        double rightSpeed = robotForward + robotTurn;
-
-        // re-scale percentages (we can only go 100% speed)
-        double maxMagnitude = Math.max(Math.abs(leftSpeed), Math.abs(rightSpeed));
-        if(maxMagnitude > 1.0) {
-            leftSpeed /= maxMagnitude;
-            rightSpeed /= maxMagnitude;
-        }
-
-        // slow down drive speed for safety
-        leftSpeed *= 0.4;
-        rightSpeed *= 0.4;
+        double forwardPercent = -controller.getLeftY() * 0.4; // limit speed
+        forwardPercent = forwardLimiter.calculate(forwardPercent); // limit acceleration
+        double turnPercent = -controller.getRightX() * 0.4;
+        turnPercent = turnLimiter.calculate(turnPercent);
 
         // set drivetrain motor speed
-        drivetrain.drive(leftSpeed, rightSpeed);
+        drivetrain.arcadeDrive(forwardPercent, turnPercent);
     }
     
     @Override
     public void disabledInit() {
-        drivetrain.drive(0, 0);
+        drivetrain.tankDrive(0, 0);
     }
     
     @Override
